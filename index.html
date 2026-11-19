@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>مواقيت الصلاة والطقس</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><meta name="theme-color" content="#0b3d33">
+<style>
+:root{--bg:#f2f5f4;--card:#fff;--tx:#10231f;--mut:#5d716b;--ac:#0f8a6d;--bd:#dfe8e5;--tick:#0b3d33;--tickt:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c1513;--card:#15221f;--tx:#e8f2ef;--mut:#8aa39c;--ac:#37c9a3;--bd:#233631;--tick:#0a2a24;--tickt:#d7fff3}}
+:root[data-theme="dark"]{--bg:#0c1513;--card:#15221f;--tx:#e8f2ef;--mut:#8aa39c;--ac:#37c9a3;--bd:#233631;--tick:#0a2a24;--tickt:#d7fff3}
+*{box-sizing:border-box;margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--bg);color:var(--tx);font-family:system-ui,"Segoe UI",Tahoma,sans-serif;max-width:520px;margin:auto;padding:12px 12px 84px}
+h2{font-size:15px;margin:16px 4px 8px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:20px;padding:14px}
+#tick{direction:ltr;overflow:hidden;background:var(--tick);color:var(--tickt);border-radius:14px;padding:9px 0;margin-bottom:10px;white-space:nowrap;font-size:14px}
+#tick span{display:inline-block;padding-inline:40px;animation:mq var(--sp,20s) linear infinite;direction:rtl}
+@keyframes mq{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}
+#hero{position:relative;overflow:hidden;border-radius:26px;color:#fff;padding:18px;min-height:300px;cursor:pointer;transition:background .6s;background:linear-gradient(160deg,#2b6fd6,#6cb2f0)}
+#fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#hero>*:not(canvas){position:relative}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.big{font-size:54px;font-weight:700;line-height:1}
+.pill{background:rgba(255,255,255,.2);backdrop-filter:blur(6px);border-radius:16px;padding:10px 12px}
+.next{margin-top:14px;display:flex;gap:10px}.next .pill{flex:1}
+.next b{display:block;font-size:20px;margin-top:2px}.next small{opacity:.85;font-size:12px}
+.bar{height:6px;background:rgba(255,255,255,.25);border-radius:6px;margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;background:#fff;width:0;transition:width 1s linear}
+.days{display:flex;gap:8px;overflow-x:auto}
+.day{flex:0 0 auto;min-width:64px;text-align:center;font-size:13px;padding:8px;border:1px solid var(--bd);border-radius:14px}
+.day .e{font-size:24px}.day b{display:block}.day span{color:var(--mut)}
+.pr{display:flex;justify-content:space-between;align-items:center;padding:11px 6px;border-bottom:1px solid var(--bd)}
+.pr:last-child{border:0}.pr.cur{background:color-mix(in srgb,var(--ac) 14%,transparent);border-radius:12px;font-weight:700}
+.pr.nx{color:var(--ac);font-weight:700}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
+input,select,textarea,button{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:12px;padding:10px;width:100%}
+button{cursor:pointer;background:var(--ac);color:#fff;border:0;font-weight:600}button.g{background:var(--bg);color:var(--tx);border:1px solid var(--bd)}
+input[type=range]{padding:0}.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sw{display:flex;align-items:center;justify-content:space-between;padding:6px 0;font-size:14px}.sw input{width:22px;height:22px}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;background:var(--card);border-top:1px solid var(--bd);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
+nav button{background:none;color:var(--mut);border:0;max-width:130px;font-size:12px}nav button.on{color:var(--ac)}nav i{display:block;font-style:normal;font-size:20px}
+.v{display:none}.v.on{display:block}
+#toast{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:12px;right:12px;max-width:496px;margin:auto;background:var(--ac);color:#fff;border-radius:16px;padding:14px;display:none;z-index:9;box-shadow:0 8px 30px #0005}
+.note{font-size:12px;color:var(--mut);margin-top:6px}
+#qa{display:inline-block;transition:transform .5s;font-size:34px}
+</style>
+</head>
+<body>
+<div id="toast"><div class="row"><b id="tmsg"></b><button class="g" style="width:auto" onclick="stopAlarm()">إيقاف</button></div></div>
+<div id="tick"><span id="tickt"></span></div>
+
+<section class="v on" id="v0">
+ <div id="hero" onclick="previewNext()">
+  <canvas id="fx"></canvas>
+  <div class="row"><div><div id="city" style="font-weight:600"></div><div id="hij" style="font-size:12px;opacity:.9"></div></div><div id="clk" style="font-size:22px;font-weight:600"></div></div>
+  <div class="row" style="margin-top:16px"><div><div class="big" id="temp">--°</div><div id="cond" style="margin-top:6px"></div></div><div id="ico" style="font-size:64px"></div></div>
+  <div class="next">
+   <div class="pill"><small>الصلاة الحالية</small><b id="cn">--</b><small id="cs"></small></div>
+   <div class="pill"><small>الصلاة القادمة</small><b id="nn">--</b><small id="ns"></small></div>
+  </div>
+  <div class="pill" style="margin-top:10px"><div class="row"><small>المتبقي للصلاة القادمة</small><b id="cd" style="font-variant-numeric:tabular-nums">--:--:--</b></div><div class="bar"><i id="pb"></i></div></div>
+  <div style="font-size:11px;opacity:.8;margin-top:8px" id="src"></div>
+ </div>
+ <h2>توقعات الأيام القادمة</h2>
+ <div class="card"><div class="days" id="days"></div></div>
+</section>
+
+<section class="v" id="v1">
+ <h2>مواقيت اليوم</h2>
+ <div class="card" id="plist"></div>
+ <h2>اتجاه القبلة</h2>
+ <div class="card row"><div><b id="qdeg"></b><div class="note">درجة من الشمال الحقيقي (باتجاه عقارب الساعة)</div></div><span id="qa">🧭</span></div>
+</section>
+
+<section class="v" id="v2">
+ <h2>الموقع والحساب</h2>
+ <div class="card">
+  <label>المدينة</label><select id="sCity"></select>
+  <button class="g" style="margin-top:8px" onclick="useGeo()">📍 استخدام موقعي الحالي</button>
+  <div class="g2"><div><label>طريقة الحساب</label><select id="sMeth"><option value="umm">أم القرى</option><option value="mwl">رابطة العالم الإسلامي</option><option value="egy">الهيئة المصرية</option><option value="kar">كراتشي</option></select></div>
+  <div><label>العصر</label><select id="sAsr"><option value="1">شافعي/جمهور</option><option value="2">حنفي</option></select></div></div>
+  <label>تعديل الدقائق (±)</label><input type="range" id="sAdj" min="-10" max="10">
+ </div>
+ <h2>الشريط الإخباري</h2>
+ <div class="card">
+  <label>ملاحظتك (تظهر دائمًا أعلى الشاشة)</label><textarea id="sNote" rows="2" placeholder="مثال: موعد الطبيب 5 مساءً — لا تنس الدواء"></textarea>
+  <label>سرعة الحركة</label><input type="range" id="sSp" min="8" max="40"><label>اللون</label><select id="sTc"><option value="#0b3d33">أخضر</option><option value="#1c3d8f">أزرق</option><option value="#7a1f2b">عنابي</option><option value="#222">رمادي</option></select>
+ </div>
+ <h2>المنبّه الصوتي</h2>
+ <div class="card">
+  <label>النغمة</label><select id="sSnd"><option value="c1">جرس هادئ</option><option value="c2">نغمة أذان إلكترونية</option><option value="c3">تنبيه قصير</option><option value="file">ملف صوتي خاص بي</option></select>
+  <input type="file" id="sFile" accept="audio/*" style="margin-top:8px">
+  <label>مستوى الصوت</label><input type="range" id="sVol" min="0" max="100">
+  <label>تنبيه مسبق قبل الصلاة (دقائق، 0 = بدون)</label><input type="number" id="sPre" min="0" max="60">
+  <div class="g2" style="margin-top:10px"><button onclick="playSound()">▶ تجربة</button><button class="g" onclick="askNotif()">🔔 تفعيل الإشعارات</button></div>
+  <h2 style="margin-inline:0">تفعيل التنبيه لكل صلاة</h2><div id="sOn"></div>
+  <div class="note">يعمل التنبيه أثناء فتح التطبيق. للتنبيه في الخلفية وعلى الشاشة الرئيسية يلزم تطبيق أصلي (Android).</div>
+ </div>
+ <h2>المظهر</h2>
+ <div class="card"><select id="sTh"><option value="auto">تلقائي</option><option value="light">فاتح</option><option value="dark">داكن</option></select></div>
+</section>
+
+<nav><button class="on" onclick="go(0,this)"><i>🏠</i>الرئيسية</button><button onclick="go(1,this)"><i>🕌</i>الصلوات</button><button onclick="go(2,this)"><i>⚙️</i>الإعدادات</button></nav>
+
+<script>
+const $=id=>document.getElementById(id),D=Math.PI/180;
+const CITIES={riyadh:['الرياض',24.7136,46.6753],makkah:['مكة المكرمة',21.3891,39.8579],madinah:['المدينة المنورة',24.4672,39.6111],jeddah:['جدة',21.5433,39.1728],dammam:['الدمام',26.4207,50.0888],cairo:['القاهرة',30.0444,31.2357],dubai:['دبي',25.2048,55.2708],amman:['عمّان',31.9454,35.9284],kuwait:['الكويت',29.3759,47.9774],doha:['الدوحة',25.2854,51.531],istanbul:['إسطنبول',41.0082,28.9784],london:['لندن',51.5074,-0.1278],geo:['موقعي الحالي',0,0]};
+const METH={umm:[18.5,'90'],mwl:[18,17],egy:[19.5,17.5],kar:[18,18]};
+const PN=[['fajr','الفجر'],['sunrise','الشروق'],['dhuhr','الظهر'],['asr','العصر'],['maghrib','المغرب'],['isha','العشاء']];
+const def={city:'riyadh',lat:24.7136,lng:46.6753,meth:'umm',asr:1,adj:0,note:'',sp:20,tc:'#0b3d33',snd:'c1',vol:80,pre:10,theme:'auto',on:{fajr:1,dhuhr:1,asr:1,maghrib:1,isha:1}};
+let S=Object.assign({},def);
+try{Object.assign(S,JSON.parse(localStorage.getItem('pt')||'{}'))}catch(e){}
+let fileURL=null;try{fileURL=localStorage.getItem('ptf')}catch(e){}
+const save=()=>{try{localStorage.setItem('pt',JSON.stringify(S))}catch(e){}};
+
+/* ---------- حساب المواقيت ---------- */
+const fh=h=>((h%24)+24)%24;
+function sun(date){const jd=Date.UTC(date.getFullYear(),date.getMonth(),date.getDate(),12)/864e5+2440587.5,d=jd-2451545;
+ const g=fh2(357.529+.98560028*d),q=fh2(280.459+.98564736*d),L=q+1.915*Math.sin(g*D)+.02*Math.sin(2*g*D),e=23.439-4e-7*d;
+ const RA=fh(Math.atan2(Math.cos(e*D)*Math.sin(L*D),Math.cos(L*D))/D/15);let eq=fh(q/15)-RA;if(eq>12)eq-=24;if(eq<-12)eq+=24;
+ return{dec:Math.asin(Math.sin(e*D)*Math.sin(L*D))/D,eq}}
+const fh2=x=>((x%360)+360)%360;
+function calc(date){const{dec,eq}=sun(date),lat=S.lat,tz=-date.getTimezoneOffset()/60,noon=12+tz-S.lng/15-eq;
+ const T=a=>{const c=(Math.sin(a*D)-Math.sin(dec*D)*Math.sin(lat*D))/(Math.cos(dec*D)*Math.cos(lat*D));return Math.acos(Math.max(-1,Math.min(1,c)))/D/15};
+ const m=METH[S.meth],base=new Date(date.getFullYear(),date.getMonth(),date.getDate()).getTime(),
+  asrAlt=Math.atan(1/(+S.asr+Math.tan(Math.abs(lat-dec)*D)))/D;
+ const mg=noon+T(-.833),adj=+S.adj*6e4,mk=h=>new Date(base+h*36e5+adj);
+ const r={fajr:mk(noon-T(-m[0])),sunrise:mk(noon-T(-.833)),dhuhr:mk(noon+.02),asr:mk(noon+T(asrAlt)),maghrib:mk(mg)};
+ r.isha=m[1]==='90'?new Date(r.maghrib.getTime()+90*6e4):mk(noon+T(-m[1]));return r}
+
+/* ---------- حالة الصلاة ---------- */
+let P,PD='',seq=[];
+function refresh(){const n=new Date(),k=n.toDateString()+S.lat+S.lng+S.meth+S.asr+S.adj;if(k===PD)return;PD=k;
+ const y=new Date(n);y.setDate(y.getDate()-1);const t=new Date(n);t.setDate(t.getDate()+1);
+ P=calc(n);const Y=calc(y),T=calc(t);
+ seq=[['isha','العشاء',Y.isha],...PN.filter(p=>p[0]!=='sunrise').map(p=>[p[0],p[1],P[p[0]]]),['fajr','الفجر',T.fajr]];buildList()}
+const f2=d=>d.toLocaleTimeString('ar-SA',{hour:'numeric',minute:'2-digit',hour12:true});
+const pad=x=>String(x).padStart(2,'0');
+function buildList(){$('plist').innerHTML=PN.map(p=>`<div class="pr" id="r_${p[0]}"><span>${p[1]}</span><span>${f2(P[p[0]])}</span></div>`).join('')}
+function tick(){refresh();const n=Date.now();let ci=0;for(let i=0;i<seq.length-1;i++)if(seq[i][2]<=n)ci=i;
+ const cur=seq[ci],nx=seq[ci+1];
+ $('cn').textContent=cur[1];$('cs').textContent='منذ '+f2(cur[2]);$('nn').textContent=nx[1];$('ns').textContent='الساعة '+f2(nx[2]);
+ const left=Math.max(0,nx[2]-n),s=Math.floor(left/1e3);$('cd').textContent=pad(s/3600|0)+':'+pad(s%3600/60|0)+':'+pad(s%60);
+ $('pb').style.width=(100*(n-cur[2])/(nx[2]-cur[2]))+'%';
+ $('clk').textContent=new Date().toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});
+ PN.forEach(p=>{const e=$('r_'+p[0]);if(e){e.className='pr'+(p[0]===cur[0]&&p[0]!=='sunrise'?' cur':'')+(p[0]===nx[0]?' nx':'')}});
+ alarms(n)}
+
+/* ---------- التنبيهات ---------- */
+let fired={};
+function alarms(n){const today=new Date().toDateString();
+ for(const[k,nm,t]of seq.slice(1)){const id=today+k;if(!S.on[k]||t.getTime()-n>7e5&&!S.pre)continue;
+  const d=n-t.getTime();if(d>=0&&d<6e4&&!fired[id]){fired[id]=1;ring('حان الآن موعد صلاة '+nm)}
+  if(S.pre>0){const dp=n-(t.getTime()-S.pre*6e4);if(dp>=0&&dp<6e4&&!fired[id+'p']){fired[id+'p']=1;ring('بقي '+S.pre+' دقيقة على صلاة '+nm,1)}}}}
+function ring(msg,soft){$('tmsg').textContent=msg;$('toast').style.display='block';playSound(soft);
+ try{if(Notification.permission==='granted')new Notification('مواقيت الصلاة',{body:msg})}catch(e){}
+ if(navigator.vibrate)navigator.vibrate([300,150,300])}
+let ac,aud;
+function stopAlarm(){$('toast').style.display='none';if(aud){aud.pause();aud=null}}
+function playSound(soft){const v=S.vol/100*(soft?.6:1);
+ if(S.snd==='file'&&fileURL){aud=new Audio(fileURL);aud.volume=v;aud.play().catch(()=>{});return}
+ try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();const seqs={c1:[[523,0],[659,.45],[784,.9],[1047,1.4]],c2:[[392,0],[440,.5],[523,1],[440,1.5],[392,2],[349,2.6],[392,3.2]],c3:[[880,0],[880,.25],[880,.5]]}[S.snd]||[[660,0]];
+  seqs.forEach(([f,t])=>{const o=ac.createOscillator(),g=ac.createGain();o.type=S.snd==='c2'?'triangle':'sine';o.frequency.value=f;o.connect(g);g.connect(ac.destination);const s=ac.currentTime+t;g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(v,s+.05);g.gain.exponentialRampToValueAtTime(.001,s+.9);o.start(s);o.stop(s+1)})}catch(e){}}
+function askNotif(){try{Notification.requestPermission().then(p=>alert(p==='granted'?'تم تفعيل الإشعارات':'لم يتم السماح بالإشعارات'))}catch(e){alert('الإشعارات غير مدعومة هنا')}}
+
+/* ---------- الطقس ---------- */
+const WK=[['clear','صافٍ','☀️'],['cloud','غائم جزئيًا','⛅'],['fog','ضباب','🌫️'],['rain','أمطار','🌧️'],['snow','ثلوج','❄️'],['storm','عواصف رعدية','⛈️']];
+const kind=c=>c===0?0:c<=3?1:c<=48?2:c<=67||(c>=80&&c<=82)?3:c<=77||c==85||c==86?4:5;
+const GR={clear:['#2b6fd6','#6cb2f0'],clearN:['#0b1b3f','#26407a'],cloud:['#5c7c9c','#9db6cc'],fog:['#7c8a96','#b6c0c8'],rain:['#2d4057','#53708c'],snow:['#7f9db8','#d3e2ee'],storm:['#1d2230','#46506a']};
+let W={k:0,night:false,demo:true};
+function demoData(){const b=Math.abs(S.lat)>40?12:32,out=[];for(let i=0;i<6;i++)out.push({c:[0,0,1,0,3,1][i],hi:b+((i*3)%5)-1,lo:b-10+(i%3)});return{cur:{t:b,c:0,night:false},days:out}}
+async function loadWeather(){let d;
+ try{const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${S.lat}&longitude=${S.lng}&current=temperature_2m,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`);const j=await r.json();
+  d={cur:{t:j.current.temperature_2m,c:j.current.weather_code,night:!j.current.is_day},days:j.daily.time.map((x,i)=>({c:j.daily.weather_code[i],hi:j.daily.temperature_2m_max[i],lo:j.daily.temperature_2m_min[i],d:x}))};d.live=true}
+ catch(e){d=demoData()}
+ W.data=d;W.demo=!d.live;W.k=kind(d.cur.c);W.night=d.cur.night;paintWeather()}
+function paintWeather(){const d=W.data;if(!d)return;const w=WK[W.k],key=W.k===0&&W.night?'clearN':w[0];
+ const g=GR[key];$('hero').style.background=`linear-gradient(160deg,${g[0]},${g[1]})`;
+ $('temp').textContent=Math.round(d.cur.t)+'°';$('cond').textContent=w[1];$('ico').textContent=W.k===0&&W.night?'🌙':w[2];
+ $('src').textContent=W.preview?'معاينة حالة الطقس — اضغط للتبديل':(W.demo?'بيانات طقس تجريبية (الاتصال بالخدمة غير متاح هنا)':'بيانات حيّة من Open-Meteo');
+ $('days').innerHTML=d.days.slice(1,7).map((x,i)=>{const dt=new Date();dt.setDate(dt.getDate()+i+1);return`<div class="day"><span>${dt.toLocaleDateString('ar-SA',{weekday:'short'})}</span><div class="e">${WK[kind(x.c)][2]}</div><b>${Math.round(x.hi)}°</b><span>${Math.round(x.lo)}°</span></div>`}).join('');
+ initFx()}
+function previewNext(){W.preview=1;W.k=(W.k+1)%6;W.night=false;paintWeather()}
+
+/* ---------- تأثيرات البطاقة التفاعلية ---------- */
+let cv=$('fx'),cx=cv.getContext('2d'),pt=[],raf,fl=0;
+function initFx(){const r=$('hero').getBoundingClientRect();cv.width=r.width;cv.height=r.height;const k=WK[W.k][0],n=k==='rain'?110:k==='storm'?160:k==='snow'?70:k==='cloud'?5:k==='fog'?6:W.night?50:0;
+ pt=Array.from({length:n},()=>({x:Math.random()*cv.width,y:Math.random()*cv.height,v:Math.random()+.5,r:Math.random()}));cancelAnimationFrame(raf);loop()}
+function loop(){const k=WK[W.k][0],w=cv.width,h=cv.height,t=Date.now()/1e3;cx.clearRect(0,0,w,h);
+ if(k==='clear'&&!W.night){const g=cx.createRadialGradient(w*.82,50,5,w*.82,50,130+Math.sin(t*2)*12);g.addColorStop(0,'rgba(255,240,150,.9)');g.addColorStop(1,'rgba(255,240,150,0)');cx.fillStyle=g;cx.fillRect(0,0,w,h)}
+ pt.forEach(p=>{if(k==='rain'||k==='storm'){cx.strokeStyle='rgba(200,225,255,.6)';cx.beginPath();cx.moveTo(p.x,p.y);cx.lineTo(p.x-3,p.y+14);cx.stroke();p.y+=p.v*12;p.x-=1.5;if(p.y>h){p.y=-10;p.x=Math.random()*w}}
+  else if(k==='snow'){cx.fillStyle='rgba(255,255,255,.85)';cx.beginPath();cx.arc(p.x,p.y,1.5+p.r*2,0,7);cx.fill();p.y+=p.v*1.2;p.x+=Math.sin(t+p.r*9)*.6;if(p.y>h){p.y=-5;p.x=Math.random()*w}}
+  else if(k==='cloud'||k==='fog'){cx.fillStyle=k==='fog'?'rgba(255,255,255,.16)':'rgba(255,255,255,.2)';cx.beginPath();cx.ellipse(p.x,40+p.r*h*.7,70+p.r*60,k==='fog'?30:22,0,0,7);cx.fill();p.x+=p.v*.4;if(p.x>w+120)p.x=-120}
+  else if(W.night){cx.fillStyle=`rgba(255,255,255,${.4+.6*Math.abs(Math.sin(t*p.v+p.r*9))})`;cx.fillRect(p.x,p.y*.6,1.6,1.6)}});
+ if(k==='storm'&&Math.random()<.008)fl=6;if(fl>0){cx.fillStyle=`rgba(255,255,255,${fl/10})`;cx.fillRect(0,0,w,h);fl--}
+ raf=requestAnimationFrame(loop)}
+addEventListener('resize',initFx);
+
+/* ---------- واجهة ---------- */
+function go(i,b){document.querySelectorAll('.v').forEach((v,j)=>v.classList.toggle('on',i===j));document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));b.classList.add('on');if(i===0)initFx();scrollTo(0,0)}
+function qibla(){const a=S.lat*D,b=21.4225*D,dl=(39.8262-S.lng)*D,d=(Math.atan2(Math.sin(dl),Math.cos(a)*Math.tan(b)-Math.sin(a)*Math.cos(dl))/D+360)%360;$('qdeg').textContent=Math.round(d)+'°';$('qa').style.transform=`rotate(${d-0}deg)`}
+function head(){$('city').textContent=CITIES[S.city][0];try{$('hij').textContent=new Date().toLocaleDateString('ar-SA-u-ca-islamic-umalqura',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}catch(e){}}
+function tk(){const t=S.note.trim();$('tick').style.display='block';$('tick').style.background=S.tc;$('tickt').textContent=(t?('📌 '+t):'📌 اكتب ملاحظتك من الإعدادات لتظهر هنا')+'   •   '+(CITIES[S.city][0]);$('tick').style.setProperty('--sp',S.sp+'s')}
+function applyTheme(){if(S.theme==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',S.theme)}
+function useGeo(){if(!navigator.geolocation)return alert('تحديد الموقع غير مدعوم');navigator.geolocation.getCurrentPosition(p=>{S.city='geo';S.lat=p.coords.latitude;S.lng=p.coords.longitude;changed()},()=>alert('تعذّر تحديد الموقع. اختر مدينتك يدويًا.'))}
+function changed(){save();PD='';head();tk();qibla();$('sCity').value=S.city;loadWeather()}
+function init(){
+ $('sCity').innerHTML=Object.entries(CITIES).map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join('');
+ $('sOn').innerHTML=PN.filter(p=>p[0]!=='sunrise').map(p=>`<div class="sw"><span>${p[1]}</span><input type="checkbox" data-k="${p[0]}" ${S.on[p[0]]?'checked':''}></div>`).join('');
+ $('sCity').value=S.city;$('sMeth').value=S.meth;$('sAsr').value=S.asr;$('sAdj').value=S.adj;$('sNote').value=S.note;$('sSp').value=S.sp;$('sTc').value=S.tc;$('sSnd').value=S.snd;$('sVol').value=S.vol;$('sPre').value=S.pre;$('sTh').value=S.theme;
+ $('sCity').onchange=e=>{S.city=e.target.value;if(S.city!=='geo'){S.lat=CITIES[S.city][1];S.lng=CITIES[S.city][2]}changed()};
+ [['sMeth','meth'],['sAsr','asr'],['sAdj','adj']].forEach(([i,k])=>$(i).onchange=e=>{S[k]=e.target.value;changed()});
+ $('sNote').oninput=e=>{S.note=e.target.value;save();tk()};$('sSp').oninput=e=>{S.sp=+e.target.value;save();tk()};$('sTc').onchange=e=>{S.tc=e.target.value;save();tk()};
+ $('sSnd').onchange=e=>{S.snd=e.target.value;save()};$('sVol').oninput=e=>{S.vol=+e.target.value;save()};$('sPre').onchange=e=>{S.pre=+e.target.value||0;save()};
+ $('sTh').onchange=e=>{S.theme=e.target.value;save();applyTheme()};
+ $('sOn').onchange=e=>{S.on[e.target.dataset.k]=e.target.checked?1:0;save()};
+ $('sFile').onchange=e=>{const f=e.target.files[0];if(!f)return;fileURL=URL.createObjectURL(f);S.snd='file';$('sSnd').value='file';save();
+  const r=new FileReader();r.onload=()=>{if(r.result.length<2.5e6)try{localStorage.setItem('ptf',r.result)}catch(x){}};r.readAsDataURL(f)};
+ applyTheme();head();tk();qibla();loadWeather();tick();setInterval(tick,1000)}
+init();
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
